@@ -5,10 +5,13 @@ TESTING = bool(os.getenv("TESTING"))
 PORT = int(os.getenv("PORT"))
 TWILIO_ACCOUNT_ID = os.getenv("TWILIO_ACCOUNT_ID")
 
+# Only relevant for testing
 TEST_PHONE = '+15005550006'
 TEST_PHONE_TO = os.getenv("TEST_PHONE_TO")
-PHONE_NUMBER = TEST_PHONE if DEBUG else os.getenv("PHONE_NUMBER")
-PHONE_NUMBER_SID = os.getenv("PHONE_NUMBER_SID")
+
+# Application specific phone numbers
+FROM_PHONE_NUMBER = TEST_PHONE if DEBUG else os.getenv("FROM_PHONE_NUMBER")
+FROM_PHONE_NUMBER_SID = os.getenv("PFROM_PHONE_NUMBER_SID")
 
 
 # Relevant for Sending
