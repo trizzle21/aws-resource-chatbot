@@ -1,0 +1,13 @@
+from app import application
+from app.settings import PORT
+import os
+
+
+if __name__ == '__main__':
+    if os.environ.get('DEBUG', False):
+        application.debug = True
+
+    application.run(
+        host='0.0.0.0',
+        port=PORT,
+    )
