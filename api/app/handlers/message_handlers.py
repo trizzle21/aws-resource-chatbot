@@ -11,6 +11,7 @@ from app.settings import (
     TEST_ACCOUNT_SID,
     TEST_AUTH_TOKEN,
 )
+from app.resources import message_resource_handler
 
 LOG = logging.getLogger(__name__)
 
@@ -26,6 +27,17 @@ def is_valid_number(number: str) -> bool:
             return False
         else:
             raise e
+
+def message_intent_parser(message):
+    """
+        Expecting messages in the format "sqs example-resource-name"
+    """
+    values = message.split(' ')
+    if values[0] not in message_resource_handler.keys():
+        return
+    resource = values[0]
+    resource_name = values[1]
+    return values[0], values[1]
 
 
 def handle_send_message(to, message):

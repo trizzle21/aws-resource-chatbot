@@ -23,8 +23,8 @@ def receive_events():
 
 
 @app.route('/notification-events')
-def receive_events():
+def notification_events():
     LOG.info('Receiving incoming webhook message')
-    message_body = "testing"
+    message_body = "sqs test_sqs_queue"
     message_sid = handle_send_message(TEST_PHONE_TO, message_body)
     return message_sid
