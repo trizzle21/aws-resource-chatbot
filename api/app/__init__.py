@@ -15,6 +15,5 @@ application = Flask(__name__)
 
 import app.views
 
-
 if settings.DEBUG:
     application.wsgi_app = DebuggedApplication(application.wsgi_app, evalex=True)
