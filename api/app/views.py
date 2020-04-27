@@ -14,8 +14,6 @@ from app.handlers.message_handler import MessageHandler
 from app.settings import (
     DEBUG,
     TEST_PHONE_TO,
-    TEST_ACCOUNT_SID,
-    TEST_AUTH_TOKEN,
     TWILIO_ACCOUNT_SID,
     TWILIO_AUTH_TOKEN,
 )
@@ -25,7 +23,7 @@ from app.resources import message_resources
 LOG = logging.getLogger(__name__)
 DEFAULT_MESSAGE = 'Provided resource not found'
 
-client = Client(TEST_ACCOUNT_SID, TEST_AUTH_TOKEN) 
+client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) 
 message_handler = MessageHandler(client)
 
 

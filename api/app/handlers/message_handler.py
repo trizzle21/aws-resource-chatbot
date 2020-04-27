@@ -3,7 +3,7 @@ import logging
 from twilio.rest import Client 
 from twilio.base.exceptions import TwilioRestException
 
-from app.settings import DEBUG, FROM_PHONE_NUMBER
+from app.settings import TESTING, FROM_PHONE_NUMBER
 
 LOG = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ class MessageHandler:
         self.client = client
 
     def handle_send_message(self, to, message):
-        if not DEBUG and not is_valid_number(to):
+        if not TESTING and not is_valid_number(to):
             LOG.warning(f'Phone Number is an invalid number')
             return
         message = self.client.messages.create( 
