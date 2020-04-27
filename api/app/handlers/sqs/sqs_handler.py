@@ -4,8 +4,8 @@ from typing import Dict, List, Tuple, Optional
 
 import boto3
 
-from app.handlers.resource_handlers.resource_handler import ResourceHandler
-from app.handlers.resource_handlers.sqs.sqs_attribute_handler import SQSAttributeHandler
+from app.handlers.resource_handler import ResourceHandler
+from app.handlers.sqs.sqs_attribute_handler import SQSAttributeHandler
 from app import cache
 
 LOG = logging.getLogger(__name__)

@@ -6,9 +6,11 @@ from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 
 from app import application as app
-from app.resources import message_resource_handler
-from app.handlers import ResourceHandler
-from app.handlers.message_handlers import MessageHandler
+from app.resources import message_resources
+
+from app.handlers.resource_handler import ResourceHandler
+from app.handlers.message_handler import MessageHandler
+
 from app.settings import (
     DEBUG,
     TEST_PHONE_TO,
@@ -31,6 +33,7 @@ message_handler = MessageHandler(client)
 @app.route('/')
 def hello_world():
     return 'Your App is running!'
+
 
 {
     "Body": "modified message text",
@@ -76,7 +79,7 @@ def _get_message_from_resource(resource_handler: Optional[ResourceHandler], toke
     return resource.handle(tokenized_message)
 
 
-def _get_resource(tokenized_message) -> ResourceHandler
+def _get_resource(tokenized_message) -> ResourceHandler:
     resource_names = set(message_resources.keys())
     desired_resources = resource_names.intersection(tokenized_message)
     if desired_resources != 1:
