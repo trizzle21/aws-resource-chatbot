@@ -9,7 +9,7 @@ from app import application as app
 from app.resources import message_resources
 
 from app.handlers.resource_handler import ResourceHandler
-from app.handlers.message_handler import MessageHandler
+from app.handlers.services.twilio_message_service import TwilioMessageService
 
 from app.settings import (
     DEBUG,
@@ -24,7 +24,7 @@ LOG = logging.getLogger(__name__)
 DEFAULT_MESSAGE = 'Provided resource not found'
 
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) 
-message_handler = MessageHandler(client)
+message_handler = TwilioMessageService(client)
 
 
 # TODO remove this endpoint
@@ -51,19 +51,20 @@ def receive_events():
     """
     #TODO Make POST endpoint with Twilio body 
     LOG.info('Receiving incoming sms message from')
-
-    webhook_body: Dict[str, str] = request.values
-    message_body = webhook_body.get('Body', None)
-    tokenized_message: Set[str] = _tokenize_message(message_body)
-    resource_handler: ResourceHandler = _get_resource(tokenized_message)
-    message_response: str = _get_message_from_resource(resource_handler, tokenized_message)    
-    
-    message_sid = message_handler.handle_send_message(TEST_PHONE_TO, message_response)
+    try:
+        webhook_body: Dict[str, str] = request.values
+        message_body = webhook_body.get('Body', None)
+        tokenized_message: Set[str] = _tokenize_message(message_body)
+        resource_handler: ResourceHandler = _get_resource(tokenized_message)
+        message_response: str = _get_message_from_resource(resource_handler, tokenized_message)    
+    except AWSMonitorException as err:
+        message_response: str = err.message
+    message_sid = message_handler.send_message(TEST_PHONE_TO, message_response)
     return jsonify(**{'body': message_body})
 
 
-# TODO: decide if this endpoint is necessary
-@app.route('/notification-events', methods=['POST'])
+# TODO: Move To Adding Slack
+@app.route('/slack-events', methods=['POST'])
 def notification_events():
     LOG.info('Receiving incoming webhook message')
     message_body = "sqs test_sqs_queue"
