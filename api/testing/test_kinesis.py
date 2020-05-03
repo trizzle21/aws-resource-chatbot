@@ -31,7 +31,6 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 class ReceiveEventKinesisApi(unittest.TestCase):
     stream_name = 'test_kinesis_stream'
 
-
     @mock_kinesis
     def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self):
         with app.test_client() as client:
@@ -51,7 +50,6 @@ class ReceiveEventKinesisApi(unittest.TestCase):
 
             # assert
             self.assertEqual(expected, json.loads(result_payload)['body'])
-            # self._delete_test_stream(self.stream_name)
 
     @mock_kinesis
     def test_kinesis_message_handler_without_name_returns_resource_message(self):
@@ -93,7 +91,6 @@ class ReceiveEventKinesisApi(unittest.TestCase):
 
             # assert
             self.assertEqual(expected, json.loads(result_payload)['body'])
-
 
     @mock_kinesis
     def test_kinesis_message_handler_with_no_intent_returns_missing_resource(self):

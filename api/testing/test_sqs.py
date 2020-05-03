@@ -115,5 +115,5 @@ class ReceiveEventSQSApi(unittest.TestCase):
         client.create_queue(QueueName=queue_name)
 
 
-if __name__ == '__main__':
-    unittest.main()
+# if __name__ == '__main__':
+#     unittest.main()

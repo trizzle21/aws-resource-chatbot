@@ -1,11 +1,11 @@
-# AWS-SMS monitor
+# AWS-resource-chatbot
 
 The purpose of this project is to enable monitoring resources in AWS. It's just a fun personal project with external apis and AWS.
 
 
 # Local
 
-
+TBD
 
 # Testing
 
@@ -35,4 +35,4 @@ All tests must pass before merging.
 
 # Contributing
 
-Any help in testing, development, documentation and other tasks is highly appreciated and useful to the project.
+Any help in testing, development, documentation and other tasks is highly appreciated and useful to the project. However, still in the design stage, so I'm a little less inclined for outside help until it's all sorted out. 
