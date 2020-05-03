@@ -5,7 +5,7 @@ import unittest
 # import twilio
 from fixtures.twilio_fixture import TwilioTestClient
 import boto3
-from moto import mock_sqs
+from moto import mock_kinesis
 
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
@@ -13,8 +13,10 @@ load_dotenv(verbose=True)
 
 from app import views, application as app
 from app.exceptions import AWSResourceMissing, AWSInvalidCommand
-from app.handlers.sqs.sqs_attribute_handler import SQSAttributeHandler
-from app.handlers.sqs.sqs_handler import SQSHandler
+from app.handlers.kinesis.kinesis_attribute_handler import KinesisAttributeHandler
+from app.handlers.kinesis.kinesis_limit_handler import KinesisLimitHandler
+
+from app.handlers.kinesis.kinesis_handler import KinesisHandler
 from app.services.twilio_message_service import TwilioMessageService
 from testing.fixtures.cache_fixture import Cache
 
@@ -26,18 +28,40 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 ))
 
 
-class ReceiveEventSQSApi(unittest.TestCase):
-    test_queue_name = 'test_sqs_queue'
+class ReceiveEventKinesisApi(unittest.TestCase):
+    stream_name = 'test_kinesis_stream'
 
-    @mock_sqs
-    def test_sqs_message_handler_with_size_message_returns_size_metadata(self):
+
+    @mock_kinesis
+    def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self):
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
-            self._create_and_populate_test_queue(self.test_queue_name)
+            self._create_and_populate_test_stream(self.stream_name, 123)
 
-            sent = {'Body': 'sqs size test_sqs_queue'}
-            expected = SQSAttributeHandler('ApproximateNumberOfMessages').handle_response(self.test_queue_name, 0)
+            sent = {'Body': 'what is the kinesis stream test_kinesis_stream encryption type'}
+            expected = KinesisAttributeHandler('EncryptionType').handle_response(self.stream_name, 'None')
+
+            # Act
+            result = client.post(
+                '/receive-events',
+                data=sent
+            )
+            result_payload = result.data.decode("utf-8")
+
+            # assert
+            self.assertEqual(expected, json.loads(result_payload)['body'])
+            # self._delete_test_stream(self.stream_name)
+
+    @mock_kinesis
+    def test_kinesis_message_handler_without_name_returns_resource_message(self):
+        with app.test_client() as client:
+            # Arrange
+            client.application.cache = Cache()
+            self._create_and_populate_test_stream(self.stream_name, 123)
+
+            sent = {'Body': 'what is the kinesis stream encryption type'}
+            expected = AWSResourceMissing('kinesis').message
 
             # Act
             result = client.post(
@@ -49,34 +73,16 @@ class ReceiveEventSQSApi(unittest.TestCase):
             # assert
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
-    @mock_sqs
-    def test_sqs_message_handler_without_name_returns_resource_message(self):
+    @mock_kinesis
+    def test_sqs_message_handler_with_no_kinesis_returns_missing_resource(self):
         with app.test_client() as client:
             # Arrange
-            client.application.cache = Cache()
-            self._create_and_populate_test_queue(self.test_queue_name)
+            cache = Cache()
+            client.application.cache = cache
+            Cache.data = {}
 
-            sent = {'Body': 'sqs size'}
-            expected = AWSResourceMissing('sqs').message
-
-            # Act
-            result = client.post(
-                '/receive-events',
-                data=sent
-            )
-            result_payload = result.data.decode("utf-8")
-
-            # assert
-            self.assertEqual(expected, json.loads(result_payload)['body'])
-
-    @mock_sqs
-    def test_sqs_message_handler_with_no_queue_returns_missing_resource(self):
-        with app.test_client() as client:
-            # Arrange
-            client.application.cache = Cache()
-
-            sent = {'Body': 'sqs size'}
-            expected = AWSResourceMissing('sqs').message
+            sent = {'Body': 'what is the kinesis stream test_kinesis_stream encryption type'}
+            expected = AWSResourceMissing('kinesis').message
 
             # Act
             result = client.post(
@@ -89,15 +95,15 @@ class ReceiveEventSQSApi(unittest.TestCase):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
 
-    @mock_sqs
-    def test_sqs_message_handler_with_no_intent_returns_missing_resource(self):
+    @mock_kinesis
+    def test_kinesis_message_handler_with_no_intent_returns_missing_resource(self):
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
-            self._create_and_populate_test_queue(self.test_queue_name)
+            self._create_and_populate_test_stream(self.stream_name, 123)
 
-            sent = {'Body': 'sqs test_sqs_queue'}
-            expected = AWSInvalidCommand('sqs', set(SQSHandler.intents.keys())).message
+            sent = {'Body': 'what is the kinesis stream test_kinesis_stream blaaah'}
+            expected = AWSInvalidCommand('kinesis', set(KinesisHandler.intents.keys())).message
 
             # Act
             result = client.post(
@@ -110,9 +116,12 @@ class ReceiveEventSQSApi(unittest.TestCase):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @staticmethod
-    def _create_and_populate_test_queue(queue_name):
-        client = boto3.client('sqs')
-        client.create_queue(QueueName=queue_name)
+    def _create_and_populate_test_stream(stream_name, shard_count):
+        client = boto3.client('kinesis')
+        client.create_stream(
+            StreamName=stream_name,
+            ShardCount=shard_count
+        )
 
 
 if __name__ == '__main__':

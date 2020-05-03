@@ -3,7 +3,7 @@
 
 class KinesisLimitHandler:
 
-    def __init__(self):
+    def __init__(self, attribute):
         self.attribute = attribute
 
     def handle(self, client, stream_name):

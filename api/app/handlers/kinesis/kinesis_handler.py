@@ -3,7 +3,7 @@ import re
 from typing import Dict, List, Tuple, Set, Optional
 
 from app.handlers.resource_handler import ResourceHandler
-from app.handlers.kinesis.kinesis_limit_handler import KinesisAttributeHandler 
+from app.handlers.kinesis.kinesis_limit_handler import KinesisLimitHandler 
 from app.handlers.kinesis.kinesis_attribute_handler import KinesisAttributeHandler 
 from app.exceptions import AWSResourceMissing, AWSInvalidCommand, AWSMultipleResources 
 
@@ -11,9 +11,9 @@ LOG = logging.getLogger(__name__)
 
 
 class KinesisHandler(ResourceHandler):
-    resource = 'sqs'
-    cache_key = 'sqs_queues'
-    queue_url_regex = r'https:\/\/.+[1-9]\/(.+)'
+    resource = 'kinesis'
+    cache_key = 'kinesis_queues'
+    stream_url_regex = r'https:\/\/.+[1-9]\/(.+)'
     account_level_intents = ['limit', 'count']
     intents = {
         'arn': KinesisAttributeHandler('StreamARN'),
@@ -25,7 +25,7 @@ class KinesisHandler(ResourceHandler):
     }
 
     def __init__(self, boto3, cache):
-        self.client = boto3.client('sqs')
+        self.client = boto3.client('kinesis')
         self.cache = cache
 
 
@@ -35,13 +35,12 @@ class KinesisHandler(ResourceHandler):
             queue_commands = ', '.join(intents.keys())
             raise AWSInvalidCommand(self.resource, queue_commands)
 
-        name, url = self.get_name(tokenized_message)
-        if not name and message_intent not in account_intents:
+        name = self.get_name(tokenized_message)
+        if not name and message_intent not in self.account_level_intents:
             raise AWSResourceMissing(self.resource)
-
-
+        
         handler = self.intents[message_intent]
-        value = handler.handle(self.client, url)
+        value = handler.handle(self.client, name)
         return handler.handle_response(name, value)
 
     def get_intent(self, tokenized_message: List[str])-> str:
@@ -52,7 +51,7 @@ class KinesisHandler(ResourceHandler):
             raise AWSInvalidCommand(self.resource, intent_tokens)
         return message_intent[0]
 
-    def get_name(self, tokenized_message: List[str]) -> Optional[Tuple[str, str]]:
+    def get_name(self, tokenized_message: List[str]) -> Optional[str]:
         """
             {
                 'QueueUrls': [
@@ -60,18 +59,28 @@ class KinesisHandler(ResourceHandler):
                 ]
             }
         """
-        intended_streams: List, streams = self.retrieve_intended_resources(tokenized_message)
-        
-        if len(intended_queues) == 0:
-            return None, None
-        if len(intended_queues) > 1:
+        intended_streams = self._get_intended_stream_name(tokenized_message)
+        if len(intended_streams) == 0:
+            return None
+        if len(intended_streams) > 1:
             raise AWSMultipleResources(self.resource)
 
-        stream_name = intended_queues[0]
-        return stream_name, streams[stream_name]
+        stream_name = intended_streams[0]
+        return stream_name
+
+    def _get_intended_stream_name(self, tokenized_message: List[str]) -> List[str]:
+        streams: List[str]
+        if self.cache.get(self.cache_key):
+            streams = self.cache.get(self.cache_key)
+        else:
+            streams = self._refresh_resources()
+
+        stream_names = set(streams)
+        return list(stream_names.intersection(tokenized_message))
 
     def _refresh_resources(self):
-        response: Dict[str, str] = self.client.list_queues()
-        queues = {re.match(self.queue_url_regex, url).group(1): url for url in response['QueueUrls']}
-        self.cache.set(self.cache_key, queues, ex=3600)
-        return queues
+        response: Dict[str, str] = self.client.list_streams()
+        streams = [url for url in response['StreamNames']]
+
+        self.cache.set(self.cache_key, streams, ex=3600)
+        return streams

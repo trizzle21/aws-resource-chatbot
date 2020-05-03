@@ -54,12 +54,22 @@ class SQSHandler(ResourceHandler):
             }
         """
         # TODO refactor out more of this
-        intended_queues, queues = self.retrieve_intended_resources(tokenized_message)
+        intended_queues, queues = self._get_queue_url_mapping(tokenized_message)        
         if len(intended_queues) != 1:
             raise AWSResourceMissing(self.resource)
         queue_name = intended_queues[0]
         return queue_name, queues[queue_name]
 
+    def _get_queue_url_mapping(self, tokenized_message):
+        queues: Dict[str, str]
+        if self.cache.get(self.cache_key):
+            queues = self.cache.get(self.cache_key)
+        else:
+            queues = self._refresh_resources()
+        queue_names = set(queues.keys())
+        intended_queues: List = list(queue_names.intersection(tokenized_message))
+        return intended_queues, queues
+    
     def _refresh_resources(self):
         response: Dict[str, str] = self.client.list_queues()
         queues = {re.match(self.queue_url_regex, url).group(1): url for url in response['QueueUrls']}

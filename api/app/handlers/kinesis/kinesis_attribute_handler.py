@@ -8,7 +8,7 @@ class KinesisAttributeHandler:
 
     def handle(self, client, stream_name):
         response = client.describe_stream_summary(StreamName=stream_name)
-        attributes = response['Attributes']
+        attributes = response['StreamDescriptionSummary']
         return attributes.get(self.attribute)
 
     def handle_response(self, name, value):
