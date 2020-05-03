@@ -21,3 +21,9 @@ class AWSInvalidCommand(AWSMonitorException):
     
     def __init__(self, resource, commands):
         self.message = f'The Available Commands for {resource} are {commands}'
+
+
+class AWSMultipleResources(AWSMonitorException):
+    
+    def __init__(self, resource, resource_names):
+        self.message = f'Too many resources requested for {resource}, please select one of {resource_names}'

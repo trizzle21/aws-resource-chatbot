@@ -3,20 +3,25 @@ import re
 from typing import Dict, List, Tuple, Set, Optional
 
 from app.handlers.resource_handler import ResourceHandler
-from app.handlers.sqs.sqs_attribute_handler import SQSAttributeHandler
-from app.exceptions import AWSResourceMissing, AWSInvalidCommand
+from app.handlers.kinesis.kinesis_limit_handler import KinesisAttributeHandler 
+from app.handlers.kinesis.kinesis_attribute_handler import KinesisAttributeHandler 
+from app.exceptions import AWSResourceMissing, AWSInvalidCommand, AWSMultipleResources 
 
 LOG = logging.getLogger(__name__)
 
 
-class SQSHandler(ResourceHandler):
+class KinesisHandler(ResourceHandler):
     resource = 'sqs'
     cache_key = 'sqs_queues'
-    queue_url_regex = r'https:\/\/.+[1-9]\/(.+)' 
+    queue_url_regex = r'https:\/\/.+[1-9]\/(.+)'
+    account_level_intents = ['limit', 'count']
     intents = {
-        'size': SQSAttributeHandler('ApproximateNumberOfMessages'),
-        'created': SQSAttributeHandler('CreatedTimestamp'),
-        'retention': SQSAttributeHandler('MessageRetentionPeriod')
+        'arn': KinesisAttributeHandler('StreamARN'),
+        'encryption': KinesisAttributeHandler('EncryptionType'),
+        'retention': KinesisAttributeHandler('RetentionPeriodHours'),
+        'created': KinesisAttributeHandler('StreamCreationTimestamp'),
+        'limit': KinesisLimitHandler('ShardLimit'),
+        'count': KinesisLimitHandler('OpenShardCount')
     }
 
     def __init__(self, boto3, cache):
@@ -25,13 +30,15 @@ class SQSHandler(ResourceHandler):
 
 
     def handle(self, tokenized_message: List[str]) -> str:
-        name, url = self.get_name(tokenized_message)
-        if not name:
-            raise AWSResourceMissing(self.resource)
         message_intent: str = self.get_intent(tokenized_message)
         if not message_intent:
             queue_commands = ', '.join(intents.keys())
             raise AWSInvalidCommand(self.resource, queue_commands)
+
+        name, url = self.get_name(tokenized_message)
+        if not name and message_intent not in account_intents:
+            raise AWSResourceMissing(self.resource)
+
 
         handler = self.intents[message_intent]
         value = handler.handle(self.client, url)
@@ -53,12 +60,15 @@ class SQSHandler(ResourceHandler):
                 ]
             }
         """
-        # TODO refactor out more of this
-        intended_queues, queues = self.retrieve_intended_resources(tokenized_message)
-        if len(intended_queues) != 1:
-            raise AWSResourceMissing(self.resource)
-        queue_name = intended_queues[0]
-        return queue_name, queues[queue_name]
+        intended_streams: List, streams = self.retrieve_intended_resources(tokenized_message)
+        
+        if len(intended_queues) == 0:
+            return None, None
+        if len(intended_queues) > 1:
+            raise AWSMultipleResources(self.resource)
+
+        stream_name = intended_queues[0]
+        return stream_name, streams[stream_name]
 
     def _refresh_resources(self):
         response: Dict[str, str] = self.client.list_queues()
