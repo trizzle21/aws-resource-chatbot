@@ -1,5 +1,6 @@
 import logging
 from typing import Set, List, Optional
+import boto3
 
 from flask import request, jsonify
 from twilio.rest import Client 
@@ -9,7 +10,7 @@ from app import application as app
 from app.resources import message_resources
 
 from app.handlers.resource_handler import ResourceHandler
-from app.handlers.services.twilio_message_service import TwilioMessageService
+from app.services.twilio_message_service import TwilioMessageService
 
 from app.settings import (
     DEBUG,
@@ -19,9 +20,9 @@ from app.settings import (
 )
 
 from app.resources import message_resources
+from app.exceptions import AWSMonitorException, AWSResourceMissing
 
 LOG = logging.getLogger(__name__)
-DEFAULT_MESSAGE = 'Provided resource not found'
 
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) 
 message_handler = TwilioMessageService(client)
@@ -33,10 +34,6 @@ def hello_world():
     return 'Your App is running!'
 
 
-{
-    "Body": "modified message text",
-    "Attributes": "{\"key\" : \"value\"}"
-}
 @app.route('/receive-events', methods=['POST'])
 def receive_events():
     """
@@ -54,13 +51,13 @@ def receive_events():
     try:
         webhook_body: Dict[str, str] = request.values
         message_body = webhook_body.get('Body', None)
-        tokenized_message: Set[str] = _tokenize_message(message_body)
+        tokenized_message: List[str] = _tokenize_message(message_body)
         resource_handler: ResourceHandler = _get_resource(tokenized_message)
         message_response: str = _get_message_from_resource(resource_handler, tokenized_message)    
     except AWSMonitorException as err:
         message_response: str = err.message
     message_sid = message_handler.send_message(TEST_PHONE_TO, message_response)
-    return jsonify(**{'body': message_body})
+    return jsonify(body=message_response)
 
 
 # TODO: Move To Adding Slack
@@ -73,22 +70,24 @@ def notification_events():
 
 
 def _get_message_from_resource(resource_handler: Optional[ResourceHandler], tokenized_message: List[str]) -> str:
-    if not resource:
-        return DEFAULT_MESSAGE
-    return resource.handle(tokenized_message)
+    if not resource_handler:
+        raise AWSMonitorException
+    return resource_handler.handle(tokenized_message)
 
 
 def _get_resource(tokenized_message) -> ResourceHandler:
     resource_names = set(message_resources.keys())
-    desired_resources = resource_names.intersection(tokenized_message)
-    if desired_resources != 1:
-        return None
-    return desired_resources[0]
+    desired_resources = list(resource_names.intersection(tokenized_message))
+    if len(desired_resources) != 1:
+        raise AWSMonitorException
+    
+    resource = message_resources[desired_resources[0]]
+    return resource(boto3, app.cache)
 
 
-def _tokenize_message(message):
+def _tokenize_message(message) -> List[str]:
     """
     TODO: see if I can use nltk tokenize
     https://stackoverflow.com/questions/743806/how-to-split-a-string-into-a-list
     """
-    return set(message.split(' '))
+    return list(set(message.split(' ')))

@@ -5,7 +5,7 @@ class SQSAttributeHandler:
         self.attribute = attribute
 
     def handle(self, client, queue_url):
-        response = client.get_queue_attributes(QueueUrl=QueueUrl)
+        response = client.get_queue_attributes(QueueUrl=queue_url)
         attributes = response['Attributes']
         return attributes.get(self.attribute)
 

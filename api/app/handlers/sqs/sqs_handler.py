@@ -1,22 +1,16 @@
 import logging
 import re
-from typing import Dict, List, Tuple, Optional
-
-import boto3
+from typing import Dict, List, Tuple, Set, Optional
 
 from app.handlers.resource_handler import ResourceHandler
 from app.handlers.sqs.sqs_attribute_handler import SQSAttributeHandler
-from app import cache
+from app.exceptions import AWSResourceMissing, AWSInvalidCommand
 
 LOG = logging.getLogger(__name__)
 
-"""
-TODO: see if I can use nltk tokenize
-https://stackoverflow.com/questions/743806/how-to-split-a-string-into-a-list
-"""
-
 
 class SQSHandler(ResourceHandler):
+    resource = 'sqs'
     cache_key = 'sqs_queues'
     queue_url_regex = r'https:\/\/.+[1-9]\/(.+)' 
     intents = {
@@ -27,28 +21,31 @@ class SQSHandler(ResourceHandler):
 
     def __init__(self, boto3, cache):
         self.client = boto3.client('sqs')
+        self.cache = cache
 
-    def handle(self, tokenized_message: List[str], *args, **kwargs) -> str:
+
+    def handle(self, tokenized_message: List[str]) -> str:
         name, url = self.get_name(tokenized_message)
         if not name:
-            return 'The SQS Queue you requested does not exist'
-        message_intent = self.get_intent(tokenized_message)
+            raise AWSResourceMissing(self.resource)
+        message_intent: str = self.get_intent(tokenized_message)
         if not message_intent:
             queue_commands = ', '.join(intents.keys())
-            return f'The Available Commands for queues are {queue_commands}'
+            raise AWSInvalidCommand(self.resource, queue_commands)
 
-        handler = intents[message_intent]
+        handler = self.intents[message_intent]
         value = handler.handle(self.client, url)
         return handler.handle_response(name, value)
 
-    def get_intent(tokenized_message)-> str:
-        intent_tokens: List[str] = set(self.intents.keys())
+    def get_intent(self, tokenized_message: List[str])-> str:
+        intent_tokens: Set[str] = set(self.intents.keys())
         message_intent = list(intent_tokens.intersection(tokenized_message))
-        if message_intent != 1:
-            return None
-        return message_intent
 
-    def get_name(tokenized_message) -> Optional[Tuple[str, str]]:
+        if len(message_intent) != 1:
+            raise AWSInvalidCommand(self.resource, intent_tokens)
+        return message_intent[0]
+
+    def get_name(self, tokenized_message: List[str]) -> Optional[Tuple[str, str]]:
         """
             {
                 'QueueUrls': [
@@ -56,20 +53,21 @@ class SQSHandler(ResourceHandler):
                 ]
             }
         """
-        queue_names: Dict[str, str]
-        if cache.get(self.cache_key):
-            queues = cache.get(self.cache_key)
+        queues: Dict[str, str]
+        if self.cache.get(self.cache_key):
+            queues = self.cache.get(self.cache_key)
         else:
-            queues = self._refresh_queue_names()
+            queues = self._refresh_queues()
 
+        queue_names = set(queues.keys())
         intended_queues: List = list(queue_names.intersection(tokenized_message))
         if len(intended_queues) != 1:
-            return None
+            raise AWSResourceMissing(self.resource)
         queue_name = intended_queues[0]
         return queue_name, queues[queue_name]
 
-    def _refresh_queue_names(self):
+    def _refresh_queues(self):
         response: Dict[str, str] = self.client.list_queues()
         queues = {re.match(self.queue_url_regex, url).group(1): url for url in response['QueueUrls']}
-        cache.set(self.cache_key, queue_names, ex=3600)
+        self.cache.set(self.cache_key, queues, ex=3600)
         return queues
