@@ -1,6 +1,7 @@
+import os
+
 from app import application
 from app.settings import PORT
-import os
 
 
 if __name__ == '__main__':
