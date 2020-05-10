@@ -6,21 +6,14 @@ services:
     restart: always
     depends_on:
       - redis
-      - db
     ports:
-        - "3000:3000"
+      - "3000:3000"
     volumes:
-        - ./api:/var/www/api
+      - ./api:/var/www/api
+      - ./data:/var/data/
     env_file: .env
     # command: uwsgi --socket 0.0.0.0:5000 --protocol=http --wsgi-file wsgi.py
     command: python3 wsgi.py
   redis:
     container_name: redis
     image: redis
-  db:
-    container_name: postgres
-    restart: always
-    image: postgres
-    ports:
-        - "5432:5432"
-    env_file: .env

@@ -2,3 +2,5 @@
 *.pyc
 
 venv/
+data/testdata.sql
+data/user.db

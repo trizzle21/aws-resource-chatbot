@@ -3,11 +3,22 @@
 The purpose of this project is to enable monitoring resources in AWS. It's just a fun personal project with external apis and AWS.
 
 
-# Local
+## Local
 
 TBD
 
-# Testing
+
+### Database Setup
+
+TODO: add database setup
+
+After adding the database, generate `api/app/models.py` via
+
+```
+sqlacodegen sqlite:///data/user.db
+```
+
+## Testing
 
 Before running any unittests, I highly recommend adding a virtual environment and adding test requirements
 
@@ -33,6 +44,6 @@ python -m unittest discover api/testing/
 
 All tests must pass before merging.
 
-# Contributing
+## Contributing
 
 Any help in testing, development, documentation and other tasks is highly appreciated and useful to the project. However, still in the design stage, so I'm a little less inclined for outside help until it's all sorted out. 
