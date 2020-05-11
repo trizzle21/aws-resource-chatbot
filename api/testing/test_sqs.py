@@ -113,7 +113,3 @@ class ReceiveEventSQSApi(unittest.TestCase):
     def _create_and_populate_test_queue(queue_name):
         client = boto3.client('sqs')
         client.create_queue(QueueName=queue_name)
-
-
-# if __name__ == '__main__':
-#     unittest.main()

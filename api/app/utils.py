@@ -2,6 +2,8 @@ import logging
 from typing import List, Optional
 
 import boto3
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from app import application as app
 from app.resources import message_resources
@@ -12,6 +14,16 @@ from app.resources import message_resources
 from app.exceptions import AWSMonitorException
 
 LOG = logging.getLogger(__name__)
+
+
+def _init_session(db_path):
+    # an Engine, which the Session will use for connection
+    # resources
+    engine = create_engine(db_path)
+
+    # create a configured "Session" class
+    Session = sessionmaker(bind=engine)
+    return Session()
 
 
 def get_message_from_resource(resource_handler: Optional[ResourceHandler], tokenized_message: List[str]) -> str:

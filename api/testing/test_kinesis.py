@@ -119,7 +119,3 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             StreamName=stream_name,
             ShardCount=shard_count
         )
-
-
-if __name__ == '__main__':
-    unittest.main()
