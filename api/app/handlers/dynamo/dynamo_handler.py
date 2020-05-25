@@ -3,8 +3,8 @@ import re
 from typing import Dict, List, Tuple, Set, Optional
 
 from app.handlers.resource_handler import ResourceHandler
-from app.handlers.kinesis.kinesis_limit_handler import KinesisLimitHandler 
-from app.handlers.kinesis.kinesis_attribute_handler import KinesisAttributeHandler 
+from app.handlers.kinesis.dynamo_limit_handler import DynamoLimitHandler 
+from app.handlers.kinesis.dynamo_table_attribute_handler import DynamoTableAttributeHandler 
 from app.exceptions import AWSResourceMissing, AWSInvalidCommand, AWSMultipleResources 
 
 LOG = logging.getLogger(__name__)
@@ -14,9 +14,13 @@ class DynamoHandler(ResourceHandler):
     resource = 'dynamodb'
     cache_key = 'dynamo_tables'
     intents = {
-        'count': SQSAttributeHandler('ItemCount'),
-        'size': SQSAttributeHandler('TableSizeBytes'),
-        'status': SQSAttributeHandler('TableStatus')
+        'count': DynamoTableAttributeHandler('ItemCount'),
+        'size': DynamoTableAttributeHandler('TableSizeBytes'),
+        'status': DynamoTableAttributeHandler('TableStatus'),
+        'account read': DynamoLimitHandler('AccountMaxReadCapacityUnits'),
+        'account write': DynamoLimitHandler('AccountMaxWriteCapacityUnits'),
+        'table read': DynamoLimitHandler('TableMaxReadCapacityUnits'),
+        'table write': DynamoLimitHandler('TableMaxWriteCapacityUnits'),
     }
 
     def handle(self, tokenized_message: List[str]) -> str:
@@ -52,10 +56,10 @@ class DynamoHandler(ResourceHandler):
         intended_tables = self._get_intended_dynamno_table_name(tokenized_message)
         if len(intended_tables) == 0:
             return None
-        if len(intended_streams) > 1:
+        if len(intended_tables) > 1:
             raise AWSMultipleResources(self.resource)
 
-        table_name = intended_streams[0]
+        table_name = intended_tables[0]
         return table_name
 
     def _get_intended_dynamno_table_name(self, tokenized_message: List[str]) -> List[str]:

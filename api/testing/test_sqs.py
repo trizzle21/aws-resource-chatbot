@@ -32,7 +32,6 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 @patch('app.views.db')
 class ReceiveEventSQSApi(unittest.TestCase, ReceiveEventTest):
     test_queue_name = 'test_sqs_queue'
-    valid_phone = '+15555555555'
 
     @mock_sqs
     def test_sqs_message_handler_with_size_message_returns_size_metadata(self, db, role_service):

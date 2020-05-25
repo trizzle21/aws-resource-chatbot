@@ -37,7 +37,7 @@ class ReceiveEventApi(unittest.TestCase, ReceiveEventTest):
     stream_name = 'test_kinesis_stream'
     valid_phone = '+15555555555'
 
-    def test_message_handler_without_access_to_(self, db, role_service):
+    def test_message_handler_with_unauthorized_access(self, db, role_service):
         self.mock_patched_values_with_null(db, role_service)
         with app.test_client() as client:
             # Arrange

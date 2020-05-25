@@ -11,4 +11,4 @@ class DynamoTableAttributeHandler:
         return attributes.get(self.attribute)
 
     def handle_response(self, name, value):
-        return f'The {self.attribute} for queue {name} is {value}'
+        return f'The {self.attribute} for table {name} is {value}'

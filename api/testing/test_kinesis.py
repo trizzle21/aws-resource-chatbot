@@ -33,7 +33,6 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 @patch('app.views.db')
 class ReceiveEventKinesisApi(unittest.TestCase, ReceiveEventTest):
     stream_name = 'test_kinesis_stream'
-    valid_phone = '+15555555555'
 
     @mock_kinesis
     def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self, db, role_service):
