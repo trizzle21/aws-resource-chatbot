@@ -19,6 +19,7 @@ from app.handlers.kinesis.kinesis_limit_handler import KinesisLimitHandler
 from app.handlers.kinesis.kinesis_handler import KinesisHandler
 from app.services.twilio_message_service import TwilioMessageService
 from testing.fixtures.cache_fixture import Cache
+from testing.receive_event_test import ReceiveEventTest
 
 # set our application to testing mode
 app.testing = True
@@ -30,15 +31,13 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 # TODO: switch to use metadata class
 @patch('app.views.db')
 @patch('app.views.assumed_role_session')
-class ReceiveEventKinesisApi(unittest.TestCase):
+class ReceiveEventKinesisApi(unittest.TestCase, ReceiveEventTest):
     stream_name = 'test_kinesis_stream'
     valid_phone = '+15555555555'
 
     @mock_kinesis
-    @mock_sts
     def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self, role_service, db):
-        db.query_db.return_value = ('test_arn',)
-        role_service.return_value = boto3.Session()
+        self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -62,8 +61,7 @@ class ReceiveEventKinesisApi(unittest.TestCase):
 
     @mock_kinesis
     def test_kinesis_message_handler_without_name_returns_resource_message(self, role_service, db):
-        db.query_db.return_value = ('test_arn',)
-        role_service.return_value = boto3.Session()
+        self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -87,9 +85,7 @@ class ReceiveEventKinesisApi(unittest.TestCase):
 
     @mock_kinesis
     def test_sqs_message_handler_with_no_kinesis_returns_missing_resource(self, role_service, db):
-        db.query_db.return_value = ('test_arn',)
-        role_service.return_value = boto3.Session()
-
+        self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
             cache = Cache()
@@ -114,8 +110,7 @@ class ReceiveEventKinesisApi(unittest.TestCase):
 
     @mock_kinesis
     def test_kinesis_message_handler_with_no_intent_returns_missing_resource(self, role_service, db):
-        db.query_db.return_value = ('test_arn',)
-        role_service.return_value = boto3.Session()
+        self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -144,10 +139,3 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             StreamName=stream_name,
             ShardCount=shard_count
         )
-
-    @staticmethod
-    def _create_webhook_payload(phone, message):
-        return {         
-            'From': phone,
-            'Body': message
-        }
