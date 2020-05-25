@@ -22,7 +22,9 @@ from app.settings import (
 from app.utils import (
     get_message_from_resource,
     get_resource,
+    get_subscriber_role,
     tokenize_message,
+    
 )
 
 
@@ -55,13 +57,10 @@ def receive_events():
     message_body = webhook_body.get('Body', None)
     from_phone = webhook_body.get('From', None)
     LOG.info(f'Receiving incoming sms message from {from_phone}')
-    subscriber = db.query_db(f'SELECT role_arn FROM subscriber where phone={from_phone};', one=True)
-    if not subscriber:
-        message_response = 'You are not authorized to access this chatbot'
-        return jsonify(body=message_response)
-    
-    aws_session = assumed_role_session(subscriber[0])
     try:
+        subscriber_role = get_subscriber_role(db, from_phone)
+        aws_session = assumed_role_session(subscriber_role)
+
         webhook_body: Dict[str, str] = request.values
         message_body = webhook_body.get('Body', None)
         tokenized_message: List[str] = tokenize_message(message_body)

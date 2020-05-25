@@ -28,14 +28,14 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 ))
 
 
-@patch('app.views.db')
 @patch('app.views.assumed_role_session')
+@patch('app.views.db')
 class ReceiveEventSQSApi(unittest.TestCase, ReceiveEventTest):
     test_queue_name = 'test_sqs_queue'
     valid_phone = '+15555555555'
 
     @mock_sqs
-    def test_sqs_message_handler_with_size_message_returns_size_metadata(self, role_service, db):
+    def test_sqs_message_handler_with_size_message_returns_size_metadata(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
@@ -56,7 +56,7 @@ class ReceiveEventSQSApi(unittest.TestCase, ReceiveEventTest):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_sqs
-    def test_sqs_message_handler_without_name_returns_resource_message(self, role_service, db):
+    def test_sqs_message_handler_without_name_returns_resource_message(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
@@ -77,7 +77,7 @@ class ReceiveEventSQSApi(unittest.TestCase, ReceiveEventTest):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_sqs
-    def test_sqs_message_handler_with_no_queue_returns_missing_resource(self, role_service, db):
+    def test_sqs_message_handler_with_no_queue_returns_missing_resource(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
@@ -98,7 +98,7 @@ class ReceiveEventSQSApi(unittest.TestCase, ReceiveEventTest):
 
 
     @mock_sqs
-    def test_sqs_message_handler_with_no_intent_returns_missing_resource(self, role_service, db):
+    def test_sqs_message_handler_with_no_intent_returns_missing_resource(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange

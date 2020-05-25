@@ -11,6 +11,12 @@ class AWSMonitorException(Exception):
         self.message = 'Sorry, did not understand that'
 
 
+class AWSUnauthorized(AWSMonitorException):
+    
+    def __init__(self):
+        self.message = 'You are not authorized to access this chatbot'
+
+
 class AWSResourceMissing(AWSMonitorException):
 
     def __init__(self, resource):

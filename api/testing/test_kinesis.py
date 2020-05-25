@@ -29,14 +29,14 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 ))
 
 # TODO: switch to use metadata class
-@patch('app.views.db')
 @patch('app.views.assumed_role_session')
+@patch('app.views.db')
 class ReceiveEventKinesisApi(unittest.TestCase, ReceiveEventTest):
     stream_name = 'test_kinesis_stream'
     valid_phone = '+15555555555'
 
     @mock_kinesis
-    def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self, role_service, db):
+    def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
@@ -60,7 +60,7 @@ class ReceiveEventKinesisApi(unittest.TestCase, ReceiveEventTest):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_kinesis
-    def test_kinesis_message_handler_without_name_returns_resource_message(self, role_service, db):
+    def test_kinesis_message_handler_without_name_returns_resource_message(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
@@ -84,7 +84,7 @@ class ReceiveEventKinesisApi(unittest.TestCase, ReceiveEventTest):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_kinesis
-    def test_sqs_message_handler_with_no_kinesis_returns_missing_resource(self, role_service, db):
+    def test_sqs_message_handler_with_no_kinesis_returns_missing_resource(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange
@@ -109,7 +109,7 @@ class ReceiveEventKinesisApi(unittest.TestCase, ReceiveEventTest):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_kinesis
-    def test_kinesis_message_handler_with_no_intent_returns_missing_resource(self, role_service, db):
+    def test_kinesis_message_handler_with_no_intent_returns_missing_resource(self, db, role_service):
         self._setup_mock_values(db, role_service)
         with app.test_client() as client:
             # Arrange

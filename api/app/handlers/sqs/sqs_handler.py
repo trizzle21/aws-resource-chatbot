@@ -19,11 +19,6 @@ class SQSHandler(ResourceHandler):
         'retention': SQSAttributeHandler('MessageRetentionPeriod')
     }
 
-    def __init__(self, session, cache):
-        self.client = session.client('sqs')
-        self.cache = cache
-
-
     def handle(self, tokenized_message: List[str]) -> str:
         name, url = self.get_name(tokenized_message)
         if not name:

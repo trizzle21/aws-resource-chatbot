@@ -10,18 +10,13 @@ from app.exceptions import AWSResourceMissing, AWSInvalidCommand, AWSMultipleRes
 LOG = logging.getLogger(__name__)
 
 
-class KinesisHandler(ResourceHandler):
-    resource = 'kinesis'
-    cache_key = 'kinesis_queues'
-    stream_url_regex = r'https:\/\/.+[1-9]\/(.+)'
-    account_level_intents = ['limit', 'count']
+class DynamoHandler(ResourceHandler):
+    resource = 'dynamodb'
+    cache_key = 'dynamo_tables'
     intents = {
-        'arn': KinesisAttributeHandler('StreamARN'),
-        'encryption': KinesisAttributeHandler('EncryptionType'),
-        'retention': KinesisAttributeHandler('RetentionPeriodHours'),
-        'created': KinesisAttributeHandler('StreamCreationTimestamp'),
-        'limit': KinesisLimitHandler('ShardLimit'),
-        'count': KinesisLimitHandler('OpenShardCount')
+        'count': SQSAttributeHandler('ItemCount'),
+        'size': SQSAttributeHandler('TableSizeBytes'),
+        'status': SQSAttributeHandler('TableStatus')
     }
 
     def handle(self, tokenized_message: List[str]) -> str:
@@ -49,34 +44,33 @@ class KinesisHandler(ResourceHandler):
     def get_name(self, tokenized_message: List[str]) -> Optional[str]:
         """
             {
-                'StreamNames': [
-                    'test-queue',
-                    'test-queue2',
+                'TableNames': [
+                    'test_table_name',
                 ]
             }
         """
-        intended_streams = self._get_intended_stream_name(tokenized_message)
-        if len(intended_streams) == 0:
+        intended_tables = self._get_intended_dynamno_table_name(tokenized_message)
+        if len(intended_tables) == 0:
             return None
         if len(intended_streams) > 1:
             raise AWSMultipleResources(self.resource)
 
-        stream_name = intended_streams[0]
-        return stream_name
+        table_name = intended_streams[0]
+        return table_name
 
-    def _get_intended_stream_name(self, tokenized_message: List[str]) -> List[str]:
-        streams: List[str]
+    def _get_intended_dynamno_table_name(self, tokenized_message: List[str]) -> List[str]:
+        tables: List[str]
         if self.cache.get(self.cache_key):
-            streams = self.cache.get(self.cache_key)
+            tables = self.cache.get(self.cache_key)
         else:
-            streams = self._refresh_resources()
+            tables = self._refresh_resources()
 
-        stream_names = set(streams)
-        return list(stream_names.intersection(tokenized_message))
+        table_names = set(streams)
+        return list(table_names.intersection(tokenized_message))
 
     def _refresh_resources(self):
-        response: Dict[str, str] = self.client.list_streams()
-        streams = [url for url in response['StreamNames']]
+        response: Dict[str, str] = self.client.list_tables()
+        tables = [name for name in response['TableNames']]
 
-        self.cache.set(self.cache_key, streams, ex=3600)
+        self.cache.set(self.cache_key, tables, ex=3600)
         return streams
