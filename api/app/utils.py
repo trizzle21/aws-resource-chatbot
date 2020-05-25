@@ -29,7 +29,6 @@ def get_resource(tokenized_message: List['str']) -> ResourceHandler:
         raise AWSMonitorException
     
     resource = message_resources[desired_resources[0]]
-    print(resource)
     return resource
 
 

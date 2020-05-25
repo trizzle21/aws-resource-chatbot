@@ -6,10 +6,11 @@ import unittest
 from fixtures.twilio_fixture import TwilioTestClient
 import boto3
 from moto import mock_sqs
+from mock import patch
+
 
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
-
 
 from app import views, application as app
 from app.exceptions import AWSResourceMissing, AWSInvalidCommand
@@ -26,13 +27,16 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 ))
 
 
+@patch('app.views.db')
+@patch('app.views.assumed_role_session')
 class ReceiveEventSQSApi(unittest.TestCase):
     test_queue_name = 'test_sqs_queue'
     valid_phone = '+15555555555'
 
-
     @mock_sqs
-    def test_sqs_message_handler_with_size_message_returns_size_metadata(self):
+    def test_sqs_message_handler_with_size_message_returns_size_metadata(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -52,7 +56,9 @@ class ReceiveEventSQSApi(unittest.TestCase):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_sqs
-    def test_sqs_message_handler_without_name_returns_resource_message(self):
+    def test_sqs_message_handler_without_name_returns_resource_message(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -72,7 +78,10 @@ class ReceiveEventSQSApi(unittest.TestCase):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_sqs
-    def test_sqs_message_handler_with_no_queue_returns_missing_resource(self):
+    def test_sqs_message_handler_with_no_queue_returns_missing_resource(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
+
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -92,7 +101,9 @@ class ReceiveEventSQSApi(unittest.TestCase):
 
 
     @mock_sqs
-    def test_sqs_message_handler_with_no_intent_returns_missing_resource(self):
+    def test_sqs_message_handler_with_no_intent_returns_missing_resource(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()

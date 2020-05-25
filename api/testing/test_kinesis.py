@@ -5,7 +5,7 @@ import unittest
 # import twilio
 from fixtures.twilio_fixture import TwilioTestClient
 import boto3
-from moto import mock_kinesis
+from moto import mock_kinesis, mock_sts
 from mock import patch
 
 from dotenv import load_dotenv
@@ -27,15 +27,18 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
     os.getenv('TEST_AUTH_TOKEN')
 ))
 
-
+# TODO: switch to use metadata class
+@patch('app.views.db')
+@patch('app.views.assumed_role_session')
 class ReceiveEventKinesisApi(unittest.TestCase):
     stream_name = 'test_kinesis_stream'
     valid_phone = '+15555555555'
 
     @mock_kinesis
-    @patch('app.db')
-    def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self, db):
-        print(db)
+    @mock_sts
+    def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -58,7 +61,9 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_kinesis
-    def test_kinesis_message_handler_without_name_returns_resource_message(self):
+    def test_kinesis_message_handler_without_name_returns_resource_message(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
@@ -81,7 +86,10 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_kinesis
-    def test_sqs_message_handler_with_no_kinesis_returns_missing_resource(self):
+    def test_sqs_message_handler_with_no_kinesis_returns_missing_resource(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
+
         with app.test_client() as client:
             # Arrange
             cache = Cache()
@@ -105,7 +113,9 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             self.assertEqual(expected, json.loads(result_payload)['body'])
 
     @mock_kinesis
-    def test_kinesis_message_handler_with_no_intent_returns_missing_resource(self):
+    def test_kinesis_message_handler_with_no_intent_returns_missing_resource(self, role_service, db):
+        db.query_db.return_value = ('test_arn',)
+        role_service.return_value = boto3.Session()
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()

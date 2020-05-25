@@ -12,8 +12,8 @@ from app import settings
 
 # Cache for heavily accessed values
 cache = redis.Redis(host='0.0.0.0', port=6379)
-application = Flask(__name__)
 
+application = Flask(__name__)
 
 import app.views
 
