@@ -16,16 +16,6 @@ from app.exceptions import AWSMonitorException
 LOG = logging.getLogger(__name__)
 
 
-def _init_session(db_path):
-    # an Engine, which the Session will use for connection
-    # resources
-    engine = create_engine(db_path)
-
-    # create a configured "Session" class
-    Session = sessionmaker(bind=engine)
-    return Session()
-
-
 def get_message_from_resource(resource_handler: Optional[ResourceHandler], tokenized_message: List[str]) -> str:
     if not resource_handler:
         raise AWSMonitorException
@@ -39,7 +29,8 @@ def get_resource(tokenized_message: List['str']) -> ResourceHandler:
         raise AWSMonitorException
     
     resource = message_resources[desired_resources[0]]
-    return resource(boto3, app.cache)
+    print(resource)
+    return resource
 
 
 def tokenize_message(message: str) -> List[str]:

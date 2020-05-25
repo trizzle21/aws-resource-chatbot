@@ -12,9 +12,6 @@ from app import settings
 
 # Cache for heavily accessed values
 cache = redis.Redis(host='0.0.0.0', port=6379)
-
-session = _init_session(os.getenv('SQLALCHEMY_DATABASE_URI'))
-
 application = Flask(__name__)
 
 

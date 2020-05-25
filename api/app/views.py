@@ -9,7 +9,7 @@ from twilio.rest import Client
 from app import application as app
 from app.exceptions import AWSMonitorException
 from app.handlers.resource_handler import ResourceHandler
-from app.models import Subscriber
+from app.db import query_db
 from app.services.twilio_message_service import TwilioMessageService
 from app.settings import (
     DEBUG,
@@ -18,7 +18,6 @@ from app.settings import (
     TWILIO_AUTH_TOKEN,
 )
 from app.utils import (
-    init_session,
     get_message_from_resource,
     get_resource,
     tokenize_message,
@@ -28,7 +27,6 @@ from app.utils import (
 LOG = logging.getLogger(__name__)
 
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-session = init_session(os.getenv('SQLALCHEMY_DATABASE_URI'))
 message_handler = TwilioMessageService(client)
 
 
@@ -50,15 +48,23 @@ def receive_events():
             "Attributes": "{\"key\" : \"value\"}"
         }
     """
-    #TODO Make POST endpoint with Twilio body 
-    LOG.info('Receiving incoming sms message from')
-    #TODO implement STS and user identification via sqlite
-    session.query(Subscriber).all()
+    webhook_body: Dict[str, str] = request.values
+    message_body = webhook_body.get('Body', None)
+    from_phone = webhook_body.get('From', None)
+    LOG.info(f'Receiving incoming sms message from {from_phone}')
+    subscriber = query_db(f'SELECT role_arn FROM subscriber where phone={from_phone};', one=True)
+    if not subscriber:
+        message_response = 'You are not authorized to access this chatbot'
+        return jsonify(body=message_response)
+    
+    aws_session = assumed_role_session(subscriber[0])
+
     try:
         webhook_body: Dict[str, str] = request.values
         message_body = webhook_body.get('Body', None)
         tokenized_message: List[str] = tokenize_message(message_body)
-        resource_handler: ResourceHandler = get_resource(tokenized_message)
+        resource_handler_class: ResourceHandler = get_resource(tokenized_message)
+        resource_handler = resource_handler_class(aws_session, app.cache)
         message_response: str = get_message_from_resource(resource_handler, tokenized_message)    
     except AWSMonitorException as err:
         message_response: str = err.message

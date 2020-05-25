@@ -19,8 +19,8 @@ class SQSHandler(ResourceHandler):
         'retention': SQSAttributeHandler('MessageRetentionPeriod')
     }
 
-    def __init__(self, boto3, cache):
-        self.client = boto3.client('sqs')
+    def __init__(self, session, cache):
+        self.client = session.client('sqs')
         self.cache = cache
 
 

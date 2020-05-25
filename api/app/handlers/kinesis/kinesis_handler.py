@@ -24,8 +24,8 @@ class KinesisHandler(ResourceHandler):
         'count': KinesisLimitHandler('OpenShardCount')
     }
 
-    def __init__(self, boto3, cache):
-        self.client = boto3.client('kinesis')
+    def __init__(self, session, cache):
+        self.client = session.client('kinesis')
         self.cache = cache
 
 

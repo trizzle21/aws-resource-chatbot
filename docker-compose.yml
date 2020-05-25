@@ -10,7 +10,7 @@ services:
       - "3000:3000"
     volumes:
       - ./api:/var/www/api
-      - ./data:/var/data/
+      - ./api/data:/var/data/
     env_file: .env
     # command: uwsgi --socket 0.0.0.0:5000 --protocol=http --wsgi-file wsgi.py
     command: python3 wsgi.py

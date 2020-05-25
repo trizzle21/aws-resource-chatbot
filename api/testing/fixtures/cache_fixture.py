@@ -1,4 +1,4 @@
-
+# This is a mock that represents a fake Redis cache
 
 class Cache: 
     data = {}

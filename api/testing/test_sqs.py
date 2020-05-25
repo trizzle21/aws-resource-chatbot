@@ -28,6 +28,8 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 
 class ReceiveEventSQSApi(unittest.TestCase):
     test_queue_name = 'test_sqs_queue'
+    valid_phone = '+15555555555'
+
 
     @mock_sqs
     def test_sqs_message_handler_with_size_message_returns_size_metadata(self):
@@ -36,7 +38,7 @@ class ReceiveEventSQSApi(unittest.TestCase):
             client.application.cache = Cache()
             self._create_and_populate_test_queue(self.test_queue_name)
 
-            sent = {'Body': 'sqs size test_sqs_queue'}
+            sent = self._create_webhook_payload(self.valid_phone, 'sqs size test_sqs_queue')
             expected = SQSAttributeHandler('ApproximateNumberOfMessages').handle_response(self.test_queue_name, 0)
 
             # Act
@@ -55,8 +57,8 @@ class ReceiveEventSQSApi(unittest.TestCase):
             # Arrange
             client.application.cache = Cache()
             self._create_and_populate_test_queue(self.test_queue_name)
-
-            sent = {'Body': 'sqs size'}
+            
+            sent = self._create_webhook_payload(self.valid_phone, 'sqs size')
             expected = AWSResourceMissing('sqs').message
 
             # Act
@@ -75,7 +77,7 @@ class ReceiveEventSQSApi(unittest.TestCase):
             # Arrange
             client.application.cache = Cache()
 
-            sent = {'Body': 'sqs size'}
+            sent = self._create_webhook_payload(self.valid_phone, 'sqs size')
             expected = AWSResourceMissing('sqs').message
 
             # Act
@@ -95,8 +97,7 @@ class ReceiveEventSQSApi(unittest.TestCase):
             # Arrange
             client.application.cache = Cache()
             self._create_and_populate_test_queue(self.test_queue_name)
-
-            sent = {'Body': 'sqs test_sqs_queue'}
+            sent = self._create_webhook_payload(self.valid_phone, 'sqs test_sqs_queue')
             expected = AWSInvalidCommand('sqs', set(SQSHandler.intents.keys())).message
 
             # Act
@@ -113,3 +114,10 @@ class ReceiveEventSQSApi(unittest.TestCase):
     def _create_and_populate_test_queue(queue_name):
         client = boto3.client('sqs')
         client.create_queue(QueueName=queue_name)
+
+    @staticmethod
+    def _create_webhook_payload(phone, message):
+        return {         
+            'From': phone,
+            'Body': message
+        }

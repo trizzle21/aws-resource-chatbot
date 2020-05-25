@@ -6,10 +6,10 @@ import unittest
 from fixtures.twilio_fixture import TwilioTestClient
 import boto3
 from moto import mock_kinesis
+from mock import patch
 
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
-
 
 from app import views, application as app
 from app.exceptions import AWSResourceMissing, AWSInvalidCommand
@@ -30,15 +30,21 @@ views.message_handler = TwilioMessageService(TwilioTestClient(
 
 class ReceiveEventKinesisApi(unittest.TestCase):
     stream_name = 'test_kinesis_stream'
+    valid_phone = '+15555555555'
 
     @mock_kinesis
-    def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self):
+    @patch('app.db')
+    def test_kinesis_message_handler_with_encryption_type_message_returns_size_metadata(self, db):
+        print(db)
         with app.test_client() as client:
             # Arrange
             client.application.cache = Cache()
             self._create_and_populate_test_stream(self.stream_name, 123)
 
-            sent = {'Body': 'what is the kinesis stream test_kinesis_stream encryption type'}
+            sent = self._create_webhook_payload(
+                self.valid_phone,
+                'what is the kinesis stream test_kinesis_stream encryption type'
+            )
             expected = KinesisAttributeHandler('EncryptionType').handle_response(self.stream_name, 'None')
 
             # Act
@@ -58,7 +64,10 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             client.application.cache = Cache()
             self._create_and_populate_test_stream(self.stream_name, 123)
 
-            sent = {'Body': 'what is the kinesis stream encryption type'}
+            sent = self._create_webhook_payload(
+                self.valid_phone,
+                'what is the kinesis stream encryption type'
+            )
             expected = AWSResourceMissing('kinesis').message
 
             # Act
@@ -79,7 +88,10 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             client.application.cache = cache
             Cache.data = {}
 
-            sent = {'Body': 'what is the kinesis stream test_kinesis_stream encryption type'}
+            sent = self._create_webhook_payload(
+                self.valid_phone,
+                'what is the kinesis stream test_kinesis_stream encryption type'
+            )
             expected = AWSResourceMissing('kinesis').message
 
             # Act
@@ -99,7 +111,10 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             client.application.cache = Cache()
             self._create_and_populate_test_stream(self.stream_name, 123)
 
-            sent = {'Body': 'what is the kinesis stream test_kinesis_stream blaaah'}
+            sent = self._create_webhook_payload(
+                self.valid_phone, 
+                'what is the kinesis stream test_kinesis_stream blaaah'
+            )
             expected = AWSInvalidCommand('kinesis', set(KinesisHandler.intents.keys())).message
 
             # Act
@@ -119,3 +134,10 @@ class ReceiveEventKinesisApi(unittest.TestCase):
             StreamName=stream_name,
             ShardCount=shard_count
         )
+
+    @staticmethod
+    def _create_webhook_payload(phone, message):
+        return {         
+            'From': phone,
+            'Body': message
+        }
