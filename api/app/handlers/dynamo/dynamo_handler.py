@@ -3,8 +3,8 @@ import re
 from typing import Dict, List, Tuple, Set, Optional
 
 from app.handlers.resource_handler import ResourceHandler
-from app.handlers.kinesis.dynamo_limit_handler import DynamoLimitHandler 
-from app.handlers.kinesis.dynamo_table_attribute_handler import DynamoTableAttributeHandler 
+from app.handlers.dynamo.dynamo_limit_handler import DynamoLimitHandler 
+from app.handlers.dynamo.dynamo_table_attribute_handler import DynamoTableAttributeHandler 
 from app.exceptions import AWSResourceMissing, AWSInvalidCommand, AWSMultipleResources 
 
 LOG = logging.getLogger(__name__)
@@ -15,12 +15,12 @@ class DynamoHandler(ResourceHandler):
     cache_key = 'dynamo_tables'
     intents = {
         'count': DynamoTableAttributeHandler('ItemCount'),
-        'size': DynamoTableAttributeHandler('TableSizeBytes'),
+        'TableSizeBytes': DynamoTableAttributeHandler('TableSizeBytes'),
         'status': DynamoTableAttributeHandler('TableStatus'),
-        'account read': DynamoLimitHandler('AccountMaxReadCapacityUnits'),
-        'account write': DynamoLimitHandler('AccountMaxWriteCapacityUnits'),
-        'table read': DynamoLimitHandler('TableMaxReadCapacityUnits'),
-        'table write': DynamoLimitHandler('TableMaxWriteCapacityUnits'),
+        'account_read': DynamoLimitHandler('AccountMaxReadCapacityUnits'),
+        'account_write': DynamoLimitHandler('AccountMaxWriteCapacityUnits'),
+        'table_read': DynamoLimitHandler('TableMaxReadCapacityUnits'),
+        'table_write': DynamoLimitHandler('TableMaxWriteCapacityUnits'),
     }
 
     def handle(self, tokenized_message: List[str]) -> str:
@@ -69,7 +69,7 @@ class DynamoHandler(ResourceHandler):
         else:
             tables = self._refresh_resources()
 
-        table_names = set(streams)
+        table_names = set(tables)
         return list(table_names.intersection(tokenized_message))
 
     def _refresh_resources(self):
@@ -77,4 +77,4 @@ class DynamoHandler(ResourceHandler):
         tables = [name for name in response['TableNames']]
 
         self.cache.set(self.cache_key, tables, ex=3600)
-        return streams
+        return tables
